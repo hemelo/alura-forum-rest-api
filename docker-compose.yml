@@ -1,0 +1,42 @@
+version: "3.7"
+services:
+  api_service:
+    build: .
+    restart: always
+    env_file: ./.env
+    ports:
+      - $SPRING_DOCKER_PORT:$SPRING_DOCKER_PORT
+    depends_on:
+      - phpmyadmin
+    command: sh -c './wait-for mysqldb:3306 -- npm start'
+    stdin_open: true
+    tty: true
+  mysqldb:
+    image: mysql:5.7
+    restart: always
+    env_file: ./.env
+    ports:
+      - $MYSQLDB_DOCKER_PORT:$MYSQLDB_DOCKER_PORT
+    environment:
+      - MYSQL_INITDB_SKIP_TZINFO= 1
+      - MYSQL_DATABASE=$DATABASE
+      - MYSQL_USER=$DB_USER
+      - MYSQL_PASSWORD=$DB_PASSWORD
+      - MYSQL_ROOT_PASSWORD=$ROOT_PASSWORD
+    command: --bind-address=0.0.0.0 --max_allowed_packet=200M
+    volumes:
+      - /home/user/mysql:/var/lib/mysql
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:4.8.5
+    restart: always
+    depends_on:
+      - mysqldb
+    environment:
+      - PMA_HOST=mysqldb
+      - PMA_PORT=$MYSQLDB_DOCKER_PORT
+      - PMA_USER=$DB_USER
+      - PMA_PASSWORD=$DB_PASSWORD
+    ports:
+      - "3001:80"
+volumes:
+  db:
